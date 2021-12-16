@@ -50,7 +50,7 @@ int main() {
 	char buffer[5];
 	int curr_num, prev_num = INT_MAX, increase = 0;
 
-    fin = fopen(filename, "r");
+	fin = fopen(filename, "r");
 	
 	if (fin == NULL) {
 		printf("No file found.\n");
