@@ -34,3 +34,121 @@ Finally, to find the life support rating, multiply the oxygen generator rating (
 
 Use the binary numbers in your diagnostic report to calculate the oxygen generator rating and CO2 scrubber rating, then multiply them together. What is the life support rating of the submarine?
 */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* SEQUENCE_LENGTH must be less than 32 */
+#define SEQUENCE_LENGTH 12
+
+enum rating_type {
+	OXYGEN_GENERATOR,
+	CO2_SCRUBBER
+};
+
+/* convert a binary representation to an integer */
+int binary_to_num(char *binary) {
+	int binary_len, i, result = 0;
+
+	binary_len = strlen(binary);
+
+	for (i = 0; i < binary_len; i++) {
+		if (binary[i] == '1') {
+			result |= 0x1 << (SEQUENCE_LENGTH - i - 1);
+		}
+	}
+	
+	return result;
+}
+
+int get_rating(FILE *f, enum rating_type rating) {
+	char rating_str[SEQUENCE_LENGTH + 1];
+	int result, digit_idx, orig_pos;
+
+	memset(rating_str, 0, SEQUENCE_LENGTH + 1);
+	orig_pos = ftell(f);
+	
+	for (digit_idx = 0; digit_idx < SEQUENCE_LENGTH; digit_idx++) {
+		int zeros = 0, ones = 0, matches = 0;
+		char buffer[SEQUENCE_LENGTH + 2];
+		char last_match[SEQUENCE_LENGTH + 1]; /* last matched sequence */
+
+		memset(buffer, 0, SEQUENCE_LENGTH + 2);
+		memset(last_match, 0, SEQUENCE_LENGTH + 1);
+		
+		while (fgets(buffer, SEQUENCE_LENGTH + 2, f) != NULL) {
+			char digit = 0;
+
+			/* check if the string is not among the kept numbers */
+			if (strncmp(buffer, rating_str, digit_idx) != 0) {
+				/* skip the current string */
+				continue;
+			}
+
+			strncpy(last_match, buffer, SEQUENCE_LENGTH);
+
+			matches++;
+			digit = buffer[digit_idx];
+
+			switch (digit) {
+			case '0':
+				zeros++;
+				break;
+			case '1':
+				ones++;
+				break;
+			}
+		}
+
+		if (rating == OXYGEN_GENERATOR) {
+			if (zeros > ones) {
+				rating_str[digit_idx] = '0';
+			} else {
+				rating_str[digit_idx] = '1';
+			}
+		} else if (rating == CO2_SCRUBBER) {
+			if (zeros > ones) {
+				rating_str[digit_idx] = '1';
+			} else {
+				rating_str[digit_idx] = '0';
+			}
+		}
+
+		if (matches == 1 || digit_idx == SEQUENCE_LENGTH - 1) {
+			if (matches == 1) {
+				strncpy(rating_str, last_match, SEQUENCE_LENGTH);
+			}
+
+			result = binary_to_num(rating_str);
+			break;
+		}
+
+		rewind(f);
+	}
+
+	fseek(f, orig_pos, SEEK_SET);
+
+	return result;
+}
+
+int main() {
+	char *filename = "input3.txt";
+	FILE *fin = fopen(filename, "r");
+	int generator_rating = 0, co2scr_rating = 0;
+
+	if (fin == NULL) {
+		printf("File not found.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	/* check oxygen generator */
+	generator_rating = get_rating(fin, OXYGEN_GENERATOR);
+
+	rewind(fin);
+
+	/* check co2 scrubber */
+	co2scr_rating = get_rating(fin, CO2_SCRUBBER);
+
+	printf("%d\n", generator_rating * co2scr_rating);
+}
