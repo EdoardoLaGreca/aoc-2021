@@ -134,8 +134,10 @@ int get_rating(FILE *f, enum rating_type rating) {
 
 int main() {
 	char *filename = "input3.txt";
-	FILE *fin = fopen(filename, "r");
+	FILE *fin;
 	int generator_rating = 0, co2scr_rating = 0;
+
+	fin = fopen(filename, "r");
 
 	if (fin == NULL) {
 		printf("File not found.\n");
